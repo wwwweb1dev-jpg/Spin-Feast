@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SPIN FEST - Luxury Casino Wheel</title>
+    <!-- Load Paystack Inline JS SDK -->
+    <script src="https://js.paystack.co/v1/inline.js"></script>
+    <style>
+        :root {
+            --bg-gradient: radial-gradient(circle, #5e051c 0%, #200108 100%);
+            --card-bg: rgba(38, 2, 10, 0.95);
+            --gold: #f3ce46;
+            --gold-light: #fff3a6;
+            --gold-dark: #997818;
+            --accent-green: #2ecc71;
+            --accent-red: #e74c3c;
+            --text-color: #ffffff;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background: var(--bg-gradient); background-attachment: fixed; color: var(--text-color); min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 15px; }
+        
+        .container { width: 100%; max-width: 480px; background: var(--card-bg); border-radius: 20px; padding: 25px; box-shadow: 0 15px 35px rgba(0,0,0,0.8), inset 0 0 15px rgba(243, 206, 70, 0.15); border: 4px solid var(--gold); position: relative; overflow: hidden; margin-bottom: 20px; }
+        
+        h1 { text-align: center; color: var(--gold); text-transform: uppercase; letter-spacing: 2px; font-size: 28px; text-shadow: 0 2px 5px rgba(0,0,0,0.9); margin-bottom: 2px; }
+        h2, h3 { text-align: center; color: var(--gold-light); margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1px; font-size: 18px; }
+        
+        .subtitle { text-align: center; font-size: 11px; color: #ffb3b3; margin-bottom: 20px; text-transform: uppercase; letter-spacing: 1.5px; }
+
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-size: 13px; color: var(--gold); font-weight: bold; }
+        input { width: 100%; padding: 12px; border-radius: 10px; border: 2px solid var(--gold-dark); background: rgba(0, 0, 0, 0.6); color: #fff; font-size: 15px; outline: none; transition: 0.3s; }
+        input:focus { border-color: var(--gold); box-shadow: 0 0 8px rgba(243, 206, 70, 0.6); }
+        
+        button { width: 100%; padding: 12px; border: none; border-radius: 10px; background: linear-gradient(to bottom, var(--gold), var(--gold-dark)); color: #200108; font-weight: 900; font-size: 16px; cursor: pointer; margin-top: 10px; text-transform: uppercase; letter-spacing: 1px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); transition: 0.2s; }
+        button:hover { filter: brightness(1.15); transform: translateY(-1px); }
+        button:active { transform: translateY(1px); }
+        
+        .btn-secondary { background: transparent; border: 2px solid var(--gold); color: var(--gold); }
+        .btn-danger { background: linear-gradient(to bottom, #ff4757, #c0392b); color: #fff; }
+        .btn-success { background: linear-gradient(to bottom, #2ed573, #27ae60); color: #fff; }
+
+        .hidden { display: none !important; }
+        
+        .dashboard-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid var(--gold-dark); padding-bottom: 10px; }
+        .balance-card { background: rgba(0,0,0,0.5); padding: 15px; border-radius: 12px; text-align: center; margin-bottom: 20px; border: 2px solid var(--gold); box-shadow: inset 0 0 10px rgba(243,206,70,0.1); }
+        .balance-card p { font-size: 11px; color: #ccc; text-transform: uppercase; letter-spacing: 1px; }
+        .balance-card h3 { font-size: 30px; color: var(--gold); margin-top: 5px; text-shadow: 0 2px 4px rgba(0,0,0,0.6); }
+
+        /* Wheel Container styling */
+        .wheel-container { position: relative; width: 330px; height: 330px; margin: 15px auto; filter: drop-shadow(0 8px 20px rgba(0,0,0,0.8)); }
+        
+        .wheel-outer-ring {
+            position: absolute; width: 100%; height: 100%; border-radius: 50%;
+            border: 14px solid var(--gold);
+            box-shadow: inset 0 0 15px rgba(0,0,0,0.9), 0 0 20px rgba(243,206,70,0.8);
+            z-index: 5; pointer-events: none;
+        }
+
+        .wheel-svg-wrap {
+            width: 100%; height: 100%; border-radius: 50%; position: relative; overflow: hidden;
+            transition: transform 4s cubic-bezier(0.15, 0.95, 0.15, 1);
+        }
+
+        .wheel-center-cap {
+            width: 65px; height: 65px;
+            background: radial-gradient(circle, var(--gold-light) 20%, var(--gold) 60%, var(--gold-dark) 100%);
+            border-radius: 50%; position: absolute; top: calc(50% - 32.5px); left: calc(50% - 32.5px);
+            z-index: 6; border: 4px solid #fff; box-shadow: 0 5px 12px rgba(0,0,0,0.7);
+            display: flex; align-items: center; justify-content: center;
+        }
+        .wheel-center-inner {
+            width: 45px; height: 45px; border-radius: 50%; border: 2px dashed rgba(32,1,8,0.5);
+            display: flex; align-items: center; justify-content: center; font-size: 8px; font-weight: 900; color: #200108; text-align: center; line-height: 1;
+        }
+
+        .wheel-pointer {
+            width: 0; height: 0; 
+            border-left: 16px solid transparent; border-right: 16px solid transparent; border-bottom: 32px solid var(--gold); 
+            position: absolute; top: -15px; left: calc(50% - 16px); z-index: 10; 
+            filter: drop-shadow(0 4px 4px rgba(0,0,0,0.8));
+        }
+
+        .stake-controls { display: flex; gap: 10px; margin-bottom: 15px; align-items: center; background: rgba(0,0,0,0.4); padding: 10px; border-radius: 10px; border: 1px solid var(--gold-dark); }
+        .stake-controls input { text-align: center; font-weight: bold; font-size: 18px; color: var(--gold); padding: 8px; }
+
+        .action-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
+        .action-box { background: rgba(0,0,0,0.4); padding: 12px; border-radius: 10px; border: 1px solid var(--gold-dark); }
+        .action-box h4 { font-size: 12px; color: var(--gold); margin-bottom: 5px; text-align: center; text-transform: uppercase; }
+        .action-box input { padding: 8px; font-size: 14px; margin-bottom: 8px; }
+        .action-box button { padding: 8px; font-size: 12px; margin: 0; }
+
+        /* Tables & Alerts */
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 11px; }
+        th, td { border: 1px solid var(--gold-dark); padding: 6px; text-align: left; }
+        th { background: rgba(0,0,0,0.7); color: var(--gold); }
+        .alert-box { padding: 10px; background: rgba(0,0,0,0.5); border-left: 4px solid var(--gold); margin-bottom: 15px; font-size: 12px; border-radius: 4px; line-height: 1.4; }
+        .table-responsive { max-height: 160px; overflow-y: auto; margin-bottom: 15px; border-radius: 6px; border: 1px solid var(--gold-dark); }
+    </style>
+</head>
+<body>
+
+    <!-- AUTH SECTION -->
+    <div id="auth-section" class="container">
+        <h1>SPIN FEST</h1>
+        <p class="subtitle">Lucky Wheel Casino</p>
+        
+        <div id="login-form">
+            <h2>Member Login</h2>
+            <div class="form-group">
+                <label>Email Address</label>
+                <input type="email" id="login-email" placeholder="Enter your email">
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="login-password" placeholder="Enter password">
+            </div>
+            <button onclick="handleLogin()">Login to Spin</button>
+            <button class="btn-secondary" onclick="toggleAuth(false)">Create New Account</button>
+        </div>
+
+        <div id="register-form" class="hidden">
+            <h2>Create Account</h2>
+            <div class="form-group">
+                <label>Username</label>
+                <input type="text" id="reg-username" placeholder="Choose a username">
+            </div>
+            <div class="form-group">
+                <label>Phone Number</label>
+                <input type="text" id="reg-phone" placeholder="Phone number">
+            </div>
+            <div class="form-group">
+                <label>Email Address</label>
+                <input type="email" id="reg-email" placeholder="Email address">
+            </div>
+            <div class="form-group">
+                <label>National Card Number / ID</label>
+                <input type="text" id="reg-card" placeholder="National Card ID">
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="reg-password" placeholder="Create password">
+            </div>
+            <button onclick="handleRegister()">Register Account</button>
+            <button class="btn-secondary" onclick="toggleAuth(true)">Back to Login</button>
+        </div>
+    </div>
+
+    <!-- USER DASHBOARD -->
+    <div id="user-dashboard" class="container hidden">
+        <div class="dashboard-header">
+            <h3 id="welcome-user" style="margin:0; font-size:15px;">Welcome</h3>
+            <button class="btn-secondary" style="width: auto; padding: 5px 12px; margin:0; font-size:12px;" onclick="logout()">Logout</button>
+        </div>
+        
+        <div class="balance-card">
+            <p>Account Balance</p>
+            <h3 id="user-balance">₵0.00</h3>
+        </div>
+
+        <div class="action-grid">
+            <div class="action-box">
+                <h4>Deposit (Paystack)</h4>
+                <input type="number" id="deposit-amount" placeholder="Amount">
+                <button onclick="payWithPaystack()" class="btn-success">Pay & Deposit</button>
+            </div>
+            <div class="action-box">
+                <h4>Withdraw</h4>
+                <input type="number" id="withdraw-amount" placeholder="Amount">
+                <button onclick="requestWithdrawal()" class="btn-danger">Withdraw</button>
+            </div>
+        </div>
+        <p id="transaction-status" style="font-size: 11px; margin-bottom: 12px; text-align:center; color: var(--gold);"></p>
+
+        <hr style="border-color: var(--gold-dark); margin-bottom: 15px;">
+
+        <h2>Lucky Wheel</h2>
+        <div class="stake-controls">
+            <label style="white-space: nowrap; margin:0;">Stake (₵):</label>
+            <input type="number" id="stake-input" value="10" min="1">
+        </div>
+
+        <!-- Wheel with reference-matching SVG layout -->
+        <div class="wheel-container">
+            <div class="wheel-pointer"></div>
+            <div class="wheel-outer-ring"></div>
+            <div class="wheel-center-cap">
+                <div class="wheel-center-inner">SPIN<br>FEST</div>
+            </div>
+            
+            <div class="wheel-svg-wrap" id="wheel">
+                <svg viewBox="0 0 200 200" width="100%" height="100%">
+                    <!-- Slice 1: ×2 (Red) -->
+                    <g transform="rotate(0 100 100)">
+                        <path d="M100,100 L100,0 A100,100 0 0,1 195.1,65.4 Z" fill="#e74c3c" stroke="#997818" stroke-width="0.8"/>
+                        <text x="138" y="52" fill="#ffffff" font-size="16" font-weight="900" text-anchor="middle" transform="rotate(36 138 52)">×2</text>
+                    </g>
+                    <!-- Slice 2: ×3 (Green) -->
+                    <g transform="rotate(72 100 100)">
+                        <path d="M100,100 L100,0 A100,100 0 0,1 195.1,65.4 Z" fill="#2ecc71" stroke="#997818" stroke-width="0.8"/>
+                        <text x="138" y="52" fill="#ffffff" font-size="16" font-weight="900" text-anchor="middle" transform="rotate(36 138 52)">×3</text>
+                    </g>
+                    <!-- Slice 3: ×4 (Blue) -->
+                    <g transform="rotate(144 100 100)">
+                        <path d="M100,100 L100,0 A100,100 0 0,1 195.1,65.4 Z" fill="#3498db" stroke="#997818" stroke-width="0.8"/>
+                        <text x="138" y="52" fill="#ffffff" font-size="16" font-weight="900" text-anchor="middle" transform="rotate(36 138 52)">×4</text>
+                    </g>
+                    <!-- Slice 4: ×5 (Yellow / Gold) -->
+                    <g transform="rotate(216 100 100)">
+                        <path d="M100,100 L100,0 A100,100 0 0,1 195.1,65.4 Z" fill="#f1c40f" stroke="#997818" stroke-width="0.8"/>
+                        <text x="138" y="52" fill="#200108" font-size="16" font-weight="900" text-anchor="middle" transform="rotate(36 138 52)">×5</text>
+                    </g>
+                    <!-- Slice 5: ×6 (Purple) -->
+                    <g transform="rotate(288 100 100)">
+                        <path d="M100,100 L100,0 A100,100 0 0,1 195.1,65.4 Z" fill="#9b59b6" stroke="#997818" stroke-width="0.8"/>
+                        <text x="138" y="52" fill="#ffffff" font-size="16" font-weight="900" text-anchor="middle" transform="rotate(36 138 52)">×6</text>
+                    </g>
+                </svg>
+            </div>
+        </div>
+
+        <button onclick="spinWheel()" id="spin-btn">SPIN THE WHEEL</button>
+        <p id="spin-result" style="text-align: center; margin-top: 12px; font-weight: bold; min-height: 22px; color: var(--gold);"></p>
+    </div>
+
+    <!-- ADMIN DASHBOARD -->
+    <div id="admin-dashboard" class="container hidden" style="max-width: 650px;">
+        <div class="dashboard-header">
+            <h3 style="margin:0; font-size:15px;">Admin Control Panel</h3>
+            <button class="btn-secondary" style="width: auto; padding: 5px 12px; margin:0; font-size:12px;" onclick="logout()">Logout</button>
+        </div>
+
+        <div class="alert-box">
+            Logged in as Admin. Review all registered accounts, receive individual deposit/withdrawal alerts, and approve or deny transactions.
+        </div>
+
+        <h3>Registered Users Accounts</h3>
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Username</th>
+                        <th>Email</th>
+                        <th>Phone</th>
+                        <th>Card ID</th>
+                        <th>Balance</th>
+                    </tr>
+                </thead>
+                <tbody id="admin-users-list"></tbody>
+            </table>
+        </div>
+
+        <h3 style="margin-top: 15px;">Pending Deposit Alerts</h3>
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Email</th>
+                        <th>Amount</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="admin-deposits-list"></tbody>
+            </table>
+        </div>
+
+        <h3 style="margin-top: 15px;">Pending Withdrawal Alerts</h3>
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Email</th>
+                        <th>Amount</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="admin-withdrawals-list"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // LocalStorage Initialization
+        if (!localStorage.getItem('users')) localStorage.setItem('users', JSON.stringify([]));
+        if (!localStorage.getItem('deposits')) localStorage.setItem('deposits', JSON.stringify([]));
+        if (!localStorage.getItem('withdrawals')) localStorage.setItem('withdrawals', JSON.stringify([]));
+
+        const ADMIN_EMAIL = "ygodfred348@gmail.com";
+        const ADMIN_PASS = "OnlyAdmin348";
+
+        function toggleAuth(isLogin) {
+            document.getElementById('login-form').classList.toggle('hidden', !isLogin);
+            document.getElementById('register-form').classList.toggle('hidden', isLogin);
+        }
+
+        function handleRegister() {
+            const username = document.getElementById('reg-username').value.trim();
+            const phone = document.getElementById('reg-phone').value.trim();
+            const email = document.getElementById('reg-email').value.trim();
+            const card = document.getElementById('reg-card').value.trim();
+            const password = document.getElementById('reg-password').value;
+
+            if (!username || !phone || !email || !card || !password) {
+                alert('Please fill in all registration fields.');
+                return;
+            }
+
+            let users = JSON.parse(localStorage.getItem('users'));
+            if (users.some(u => u.email === email)) {
+                alert('An account with this email already exists.');
+                return;
+            }
+
+            users.push({ username, phone, email, card, password, balance: 0 });
+            localStorage.setItem('users', JSON.stringify(users));
+            alert('Account created successfully! Please login.');
+            toggleAuth(true);
+        }
+
+        function handleLogin() {
+            const email = document.getElementById('login-email').value.trim();
+            const password = document.getElementById('login-password').value;
+
+            if (email === ADMIN_EMAIL && password === ADMIN_PASS) {
+                localStorage.setItem('currentUser', JSON.stringify({ email: ADMIN_EMAIL, role: 'admin' }));
+                loadAdminDashboard();
+                return;
+            }
+
+            let users = JSON.parse(localStorage.getItem('users'));
+            let user = users.find(u => u.email === email && u.password === password);
+
+            if (user) {
+                localStorage.setItem('currentUser', JSON.stringify({ ...user, role: 'user' }));
+                loadUserDashboard();
+            } else {
+                alert('Invalid email or password.');
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('currentUser');
+            document.getElementById('user-dashboard').classList.add('hidden');
+            document.getElementById('admin-dashboard').classList.add('hidden');
+            document.getElementById('auth-section').classList.remove('hidden');
+        }
+
+        function loadUserDashboard() {
+            document.getElementById('auth-section').classList.add('hidden');
+            document.getElementById('user-dashboard').classList.remove('hidden');
+            refreshUserData();
+        }
+
+        function refreshUserData() {
+            let currentUser = JSON.parse(localStorage.getItem('currentUser'));
+            let users = JSON.parse(localStorage.getItem('users'));
+            let freshUser = users.find(u => u.email === currentUser.email);
+            
+            if(freshUser) {
+                localStorage.setItem('currentUser', JSON.stringify({ ...freshUser, role: 'user' }));
+                document.getElementById('welcome-user').innerText = `Welcome, ${freshUser.username}`;
+                document.getElementById('user-balance').innerText = `₵${freshUser.balance.toFixed(2)}`;
+            }
+        }
+
+        // Paystack Integration Function
+        function payWithPaystack() {
+            const amountInput = parseFloat(document.getElementById('deposit-amount').value);
+            if (isNaN(amountInput) || amountInput <= 0) {
+                alert('Please enter a valid deposit amount.');
+                return;
+            }
+
+            let currentUser = JSON.parse(localStorage.getItem('currentUser'));
+            
+            // Paystack expects amount in kobo/pesewas (multiply by 100)
+            let amountInPesewas = Math.round(amountInput * 100);
+
+            let handler = PaystackPop.setup({
+                key: 'pk_live_8fe037a5d570b35628118c4380baa80015b38e86', // Replace with your actual Paystack Public Key
+                email: currentUser.email,
+                amount: amountInPesewas,
+                currency: 'GHS', // Change to 'NGN' or your preferred currency if needed
+                ref: 'SPIN_' + Math.floor((Math.random() * 1000000000) + 1),
+                callback: function(response) {
+                    // Payment successful on Paystack, now send deposit alert to admin for approval
+                    let deposits = JSON.parse(localStorage.getItem('deposits'));
+                    deposits.push({ id: Date.now(), email: currentUser.email, amount: amountInput, status: 'pending', reference: response.reference });
+                    localStorage.setItem('deposits', JSON.stringify(deposits));
+
+                    document.getElementById('transaction-status').innerText = 'Payment successful! Deposit alert sent to admin for final approval.';
+                    document.getElementById('deposit-amount').value = '';
+                },
+                onClose: function() {
+                    alert('Transaction was cancelled.');
+                }
+            });
+            handler.openIframe();
+        }
+
+        function requestWithdrawal() {
+            const amount = parseFloat(document.getElementById('withdraw-amount').value);
+            let currentUser = JSON.parse(localStorage.getItem('currentUser'));
+
+            if (isNaN(amount) || amount <= 0) {
+                alert('Please enter a valid withdrawal amount.');
+                return;
+            }
+            if (currentUser.balance < amount) {
+                alert('Insufficient balance for this withdrawal request.');
+                return;
+            }
+
+            let withdrawals = JSON.parse(localStorage.getItem('withdrawals'));
+            withdrawals.push({ id: Date.now(), email: currentUser.email, amount: amount, status: 'pending' });
+            localStorage.setItem('withdrawals', JSON.stringify(withdrawals));
+
+            document.getElementById('transaction-status').innerText = 'Withdrawal alert sent to admin for approval.';
+            document.getElementById('withdraw-amount').value = '';
+        }
+
+        // Spin Logic with 5 Odds Layout (×2 to ×6)
+        let currentRotation = 0;
+        function spinWheel() {
+            let currentUser = JSON.parse(localStorage.getItem('currentUser'));
+            let stake = parseFloat(document.getElementById('stake-input').value);
+
+            if (isNaN(stake) || stake <= 0) {
+                alert('Please enter a valid stake amount.');
+                return;
+            }
+
+            if (currentUser.balance < stake) {
+                alert('Insufficient balance! Please make a deposit.');
+                return;
+            }
+
+            updateUserBalance(currentUser.email, -stake);
+
+            const wheel = document.getElementById('wheel');
+            const resultText = document.getElementById('spin-result');
+            document.getElementById('spin-btn').disabled = true;
+            resultText.innerText = "Spinning wheel...";
+
+            const multipliers = [2, 3, 4, 5, 6];
+            const randomSliceIndex = Math.floor(Math.random() * 5);
+            const degreesPerSlice = 72;
+            const extraSpins = 5 * 360;
+            const targetAngle = extraSpins + (randomSliceIndex * degreesPerSlice) + (degreesPerSlice / 2);
+            
+            currentRotation += targetAngle;
+            wheel.style.transform = `rotate(${currentRotation}deg)`;
+
+            setTimeout(() => {
+                const multiplier = multipliers[randomSliceIndex];
+                const winnings = stake * multiplier;
+                
+                updateUserBalance(currentUser.email, winnings);
+                resultText.innerText = `You won ×${multiplier}! Payout: ₵${winnings.toFixed(2)}`;
+                document.getElementById('spin-btn').disabled = false;
+                refreshUserData();
+            }, 4000);
+        }
+
+        function updateUserBalance(email, amountChange) {
+            let users = JSON.parse(localStorage.getItem('users'));
+            let user = users.find(u => u.email === email);
+            if (user) {
+                user.balance += amountChange;
+                localStorage.setItem('users', JSON.stringify(users));
+            }
+        }
+
+        // Admin Dashboard Functions
+        function loadAdminDashboard() {
+            document.getElementById('auth-section').classList.add('hidden');
+            document.getElementById('admin-dashboard').classList.remove('hidden');
+            renderAdminTables();
+        }
+
+        function renderAdminTables() {
+            let users = JSON.parse(localStorage.getItem('users'));
+            let deposits = JSON.parse(localStorage.getItem('deposits'));
+            let withdrawals = JSON.parse(localStorage.getItem('withdrawals'));
+
+            // Users Table
+            let usersHtml = '';
+            users.forEach(u => {
+                usersHtml += `<tr>
+                    <td>${u.username}</td>
+                    <td>${u.email}</td>
+                    <td>${u.phone}</td>
+                    <td>${u.card}</td>
+                    <td>₵${u.balance.toFixed(2)}</td>
+                </tr>`;
+            });
+            document.getElementById('admin-users-list').innerHTML = usersHtml || '<tr><td colspan="5" style="text-align:center;">No users found</td></tr>';
+
+            // Deposits Table
+            let depositsHtml = '';
+            deposits.filter(d => d.status === 'pending').forEach(d => {
+                depositsHtml += `<tr>
+                    <td>${d.email}</td>
+                    <td>₵${d.amount.toFixed(2)}</td>
+                    <td>
+                        <button class="btn-success" style="padding:3px 6px; margin:0; width:auto; font-size:11px;" onclick="handleDepositAction(${d.id}, true)">Approve</button>
+                        <button class="btn-danger" style="padding:3px 6px; margin:0; width:auto; font-size:11px;" onclick="handleDepositAction(${d.id}, false)">Deny</button>
+                    </td>
+                </tr>`;
+            });
+            document.getElementById('admin-deposits-list').innerHTML = depositsHtml || '<tr><td colspan="3" style="text-align:center;">No pending deposits</td></tr>';
+
+            // Withdrawals Table
+            let withdrawalsHtml = '';
+            withdrawals.filter(w => w.status === 'pending').forEach(w => {
+                withdrawalsHtml += `<tr>
+                    <td>${w.email}</td>
+                    <td>₵${w.amount.toFixed(2)}</td>
+                    <td>
+                        <button class="btn-success" style="padding:3px 6px; margin:0; width:auto; font-size:11px;" onclick="handleWithdrawalAction(${w.id}, true)">Approve</button>
+                        <button class="btn-danger" style="padding:3px 6px; margin:0; width:auto; font-size:11px;" onclick="handleWithdrawalAction(${w.id}, false)">Deny</button>
+                    </td>
+                </tr>`;
+            });
+            document.getElementById('admin-withdrawals-list').innerHTML = withdrawalsHtml || '<tr><td colspan="3" style="text-align:center;">No pending withdrawals</td></tr>';
+        }
+
+        function handleDepositAction(depositId, isApproved) {
+            let deposits = JSON.parse(localStorage.getItem('deposits'));
+            let depositIndex = deposits.findIndex(d => d.id === depositId);
+
+            if (depositIndex !== -1) {
+                let deposit = deposits[depositIndex];
+                if (isApproved) {
+                    updateUserBalance(deposit.email, deposit.amount);
+                    alert(`Deposit of ₵${deposit.amount} approved & credited to user account.`);
+                } else {
+                    alert(`Deposit of ₵${deposit.amount} denied/failed.`);
+                }
+                deposits.splice(depositIndex, 1);
+                localStorage.setItem('deposits', JSON.stringify(deposits));
+                renderAdminTables();
+            }
+        }
+
+        function handleWithdrawalAction(withdrawalId, isApproved) {
+            let withdrawals = JSON.parse(localStorage.getItem('withdrawals'));
+            let withdrawalIndex = withdrawals.findIndex(w => w.id === withdrawalId);
+
+            if (withdrawalIndex !== -1) {
+                let withdrawal = withdrawals[withdrawalIndex];
+                if (isApproved) {
+                    let users = JSON.parse(localStorage.getItem('users'));
+                    let user = users.find(u => u.email === withdrawal.email);
+                    if(user && user.balance >= withdrawal.amount) {
+                        updateUserBalance(withdrawal.email, -withdrawal.amount);
+                        alert(`Withdrawal of ₵${withdrawal.amount} approved.`);
+                    } else {
+                        alert(`User balance insufficient. Withdrawal denied.`);
+                    }
+                } else {
+                    alert(`Withdrawal of ₵${withdrawal.amount} denied/failed.`);
+                }
+                withdrawals.splice(withdrawalIndex, 1);
+                localStorage.setItem('withdrawals', JSON.stringify(withdrawals));
+                renderAdminTables();
+            }
+        }
+
+        window.onload = function() {
+            let currentUser = JSON.parse(localStorage.getItem('currentUser'));
+            if (currentUser) {
+                if (currentUser.role === 'admin') {
+                    loadAdminDashboard();
+                } else {
+                    loadUserDashboard();
+                }
+            }
+        }
+    </script>
+</body>
+</html>
